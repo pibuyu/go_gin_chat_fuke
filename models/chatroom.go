@@ -14,7 +14,7 @@ const msgTyping = "[正在输入]"
 
 // Room 聊天室
 type Room struct {
-	users          map[uid]chan Event
+	users          map[uid]chan Event     // room向用户推送消息是获取用户uid绑定的channel，然后把消息放进去
 	userCount      int                    // 当前房间总人数
 	publishChannel chan Event             // 聊天室推送channel
 	archive        *list.List             // 历史记录 todo: 未持久化 重启失效
@@ -77,7 +77,7 @@ func (room *Room) GetArchive() []Event {
 	return <-ch
 }
 
-// Serve 启动一个go程，监听这个room的通道
+// Serve 启动一个go程，监听这个room的各个 channel
 func (room *Room) Serve() {
 	for {
 		select {
@@ -87,13 +87,15 @@ func (room *Room) Serve() {
 			chn := make(chan Event, chanSize) // 用户对应的接收消息的通道
 			uid := uuid.New().String()
 			room.users[uid] = chn // 这个收消息的通道和room的users绑定起来
+
 			// 新增一个订阅，这个用户发消息的通道是上面这个chn；收消息通道是room的公告通道；离开时需要推送的通道也是room的用户离开通道
 			ch <- Subscription{
 				Id:                uid,
-				Pipe:              chn,
-				EmitChannel:       room.publishChannel,
+				Pipe:              chn,                 // 用户从room接收消息的channel就是uid绑定的channel
+				EmitChannel:       room.publishChannel, // 用户向room发送消息，就是往publishChannel推送消息
 				LeaveEventChannel: room.leaveChn,
 			}
+
 			// 然后告诉所有人我来了
 			joinEvent := NewEvent(EventTypeJoin, uid, msgJoin)
 			joinEvent.UserCount = room.userCount // todo:为什么要维护event里的userCount字段？起什么作用
@@ -101,7 +103,7 @@ func (room *Room) Serve() {
 				userChannel <- joinEvent
 			}
 
-		// 取出	room.archiveChan 最前面的通道，然后把room的所以历史消息推送进去
+		// 取出	room.archiveChan 的头部的第一个通道，然后把room的所有历史消息推送进去
 		case arch := <-room.archiveChan:
 			var events []Event // todo:为什么不能用new([]Event)
 			for e := room.archive.Front(); e != nil; e = e.Next() {
@@ -119,7 +121,7 @@ func (room *Room) Serve() {
 			if room.archive.Len() > archiveSize {
 				room.archive.Remove(room.archive.Front())
 			}
-			// 刚收到的event存进去
+			// 刚收到的event存进去，历史消息就是在这里更新的
 			room.archive.PushBack(event)
 
 		// 有人想要退出房间
