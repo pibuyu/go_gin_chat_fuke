@@ -22,14 +22,14 @@ func NewServer() *gin.Engine {
 	//	s.POST("/refresh/msg", Refresh.Msg())
 	//	s.GET("/refresh/leave", Refresh.Leave())
 	//}
-	//
-	//{
-	//	// polling
-	//	s.GET("/polling/archive", LongPolling.Archive())
-	//	s.POST("/polling/msg", LongPolling.Msg())
-	//	s.GET("/polling/leave", LongPolling.Leave())
-	//
-	//}
+
+	{
+		// polling
+		s.GET("/polling/archive", LongPooling.Archive())
+		s.POST("/polling/msg", LongPooling.Msg())
+		s.GET("/polling/leave", LongPooling.Leave())
+
+	}
 
 	{
 		// websocket

@@ -3,6 +3,7 @@ package models
 import (
 	"container/list"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 const archiveSize = 20 // 保存历史消息的条数
@@ -123,8 +124,8 @@ func (room *Room) Serve() {
 			}
 			// 刚收到的event存进去，历史消息就是在这里更新的
 			room.archive.PushBack(event)
-			if event.Text != "" {
-				event.Create()
+			if !event.Create() {
+				zap.S().Info("消息持久化出错！！！")
 			}
 
 		// 有人想要退出房间
@@ -135,6 +136,7 @@ func (room *Room) Serve() {
 			}
 			// 公告：这个用户离开了
 			leaveEvent := NewEvent(EventTypeLeave, uid, msgLeave)
+			//leaveEvent.Create() // 用户离开房间也记录下来
 			leaveEvent.UserCount = room.userCount
 			for _, userChannel := range room.users {
 				userChannel <- leaveEvent
