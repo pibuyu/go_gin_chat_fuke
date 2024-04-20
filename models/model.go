@@ -30,6 +30,15 @@ func NewEvent(typ string, user, msg string) Event {
 	}
 }
 
+func (event *Event) Create() bool {
+	err = ChatDB.Create(&event).Error
+	//err = ChatDB.Save(&event).Error
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 // Subscription 用户订阅
 type Subscription struct {
 	Id                string

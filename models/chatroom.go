@@ -123,6 +123,9 @@ func (room *Room) Serve() {
 			}
 			// 刚收到的event存进去，历史消息就是在这里更新的
 			room.archive.PushBack(event)
+			if event.Text != "" {
+				event.Create()
+			}
 
 		// 有人想要退出房间
 		case uid := <-room.leaveChn:
